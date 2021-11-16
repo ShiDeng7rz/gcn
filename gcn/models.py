@@ -1,7 +1,7 @@
 from gcn.layers import *
 from gcn.metrics import *
-
-flags = tf.app.flags
+import tensorflow.compat.v1 as tc1
+flags = tf.flags
 FLAGS = flags.FLAGS
 
 
@@ -37,7 +37,7 @@ class Model(object):
 
     def build(self):
         """ Wrapper for _build() """
-        with tf.variable_scope(self.name):
+        with tc1.variable_scope(self.name):
             self._build()
 
         # Build sequential layer model
@@ -48,7 +48,7 @@ class Model(object):
         self.outputs = self.activations[-1]
 
         # Store model variables for easy access
-        variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.name)
+        variables = tc1.get_collection(tc1.GraphKeys.GLOBAL_VARIABLES, scope=self.name)
         self.vars = {var.name: var for var in variables}
 
         # Build metrics
@@ -139,7 +139,7 @@ class GCN(Model):
         self.output_dim = placeholders['labels'].get_shape().as_list()[1]
         self.placeholders = placeholders
 
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate)
+        self.optimizer = tc1.train.AdamOptimizer(learning_rate=FLAGS.learning_rate)
 
         self.build()
 

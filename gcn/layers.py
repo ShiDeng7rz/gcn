@@ -1,7 +1,9 @@
 from gcn.inits import *
 import tensorflow as tf
+import tensorflow.compat.v1 as tc1
+import tensorflow.compat.v1.summary as tc1s
 
-flags = tf.app.flags
+flags = tf.flags
 FLAGS = flags.FLAGS
 
 # global unique layer ID dictionary for layer name assignment
@@ -21,16 +23,16 @@ def get_layer_uid(layer_name=''):
 def sparse_dropout(x, keep_prob, noise_shape):
     """Dropout for sparse tensors."""
     random_tensor = keep_prob
-    random_tensor += tf.random_uniform(noise_shape)
+    random_tensor += tc1.random_uniform(noise_shape)
     dropout_mask = tf.cast(tf.floor(random_tensor), dtype=tf.bool)
-    pre_out = tf.sparse_retain(x, dropout_mask)
-    return pre_out * (1./keep_prob)
+    pre_out = tc1.sparse_retain(x, dropout_mask)
+    return pre_out * (1. / keep_prob)
 
 
 def dot(x, y, sparse=False):
     """Wrapper for tf.matmul (sparse vs dense)."""
     if sparse:
-        res = tf.sparse_tensor_dense_matmul(x, y)
+        res = tc1.sparse_tensor_dense_matmul(x, y)
     else:
         res = tf.matmul(x, y)
     return res
@@ -71,19 +73,20 @@ class Layer(object):
     def __call__(self, inputs):
         with tf.name_scope(self.name):
             if self.logging and not self.sparse_inputs:
-                tf.summary.histogram(self.name + '/inputs', inputs)
+                tc1s.histogram(self.name + '/inputs', inputs)
             outputs = self._call(inputs)
             if self.logging:
-                tf.summary.histogram(self.name + '/outputs', outputs)
+                tc1s.histogram(self.name + '/outputs', outputs)
             return outputs
 
     def _log_vars(self):
         for var in self.vars:
-            tf.summary.histogram(self.name + '/vars/' + var, self.vars[var])
+            tc1s.histogram(self.name + '/vars/' + var, self.vars[var])
 
 
 class Dense(Layer):
     """Dense layer."""
+
     def __init__(self, input_dim, output_dim, placeholders, dropout=0., sparse_inputs=False,
                  act=tf.nn.relu, bias=False, featureless=False, **kwargs):
         super(Dense, self).__init__(**kwargs)
@@ -115,9 +118,9 @@ class Dense(Layer):
 
         # dropout
         if self.sparse_inputs:
-            x = sparse_dropout(x, 1-self.dropout, self.num_features_nonzero)
+            x = sparse_dropout(x, 1 - self.dropout, self.num_features_nonzero)
         else:
-            x = tf.nn.dropout(x, 1-self.dropout)
+            x = tf.nn.dropout(x, 1 - self.dropout)
 
         # transform
         output = dot(x, self.vars['weights'], sparse=self.sparse_inputs)
@@ -131,6 +134,7 @@ class Dense(Layer):
 
 class GraphConvolution(Layer):
     """Graph convolution layer."""
+
     def __init__(self, input_dim, output_dim, placeholders, dropout=0.,
                  sparse_inputs=False, act=tf.nn.relu, bias=False,
                  featureless=False, **kwargs):
@@ -150,7 +154,7 @@ class GraphConvolution(Layer):
         # helper variable for sparse dropout
         self.num_features_nonzero = placeholders['num_features_nonzero']
 
-        with tf.variable_scope(self.name + '_vars'):
+        with tc1.variable_scope(self.name + '_vars'):
             for i in range(len(self.support)):
                 self.vars['weights_' + str(i)] = glorot([input_dim, output_dim],
                                                         name='weights_' + str(i))
@@ -165,9 +169,9 @@ class GraphConvolution(Layer):
 
         # dropout
         if self.sparse_inputs:
-            x = sparse_dropout(x, 1-self.dropout, self.num_features_nonzero)
+            x = sparse_dropout(x, 1 - self.dropout, self.num_features_nonzero)
         else:
-            x = tf.nn.dropout(x, 1-self.dropout)
+            x = tf.nn.dropout(x, rate=1 - self.dropout)
 
         # convolve
         supports = list()

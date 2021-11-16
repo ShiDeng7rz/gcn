@@ -3,17 +3,17 @@ from __future__ import print_function
 
 import time
 import tensorflow as tf
-
+import tensorflow.compat.v1 as tc1
 from gcn.utils import *
 from gcn.models import GCN, MLP
 
 # Set random seed
 seed = 123
 np.random.seed(seed)
-tf.set_random_seed(seed)
+tc1.set_random_seed(seed)
 
 # Settings
-flags = tf.app.flags
+flags = tf.flags
 FLAGS = flags.FLAGS
 flags.DEFINE_string('dataset', 'cora', 'Dataset string.')  # 'cora', 'citeseer', 'pubmed'
 flags.DEFINE_string('model', 'gcn', 'Model string.')  # 'gcn', 'gcn_cheby', 'dense'
@@ -47,19 +47,19 @@ else:
 
 # Define placeholders
 placeholders = {
-    'support': [tf.sparse_placeholder(tf.float32) for _ in range(num_supports)],
-    'features': tf.sparse_placeholder(tf.float32, shape=tf.constant(features[2], dtype=tf.int64)),
-    'labels': tf.placeholder(tf.float32, shape=(None, y_train.shape[1])),
-    'labels_mask': tf.placeholder(tf.int32),
-    'dropout': tf.placeholder_with_default(0., shape=()),
-    'num_features_nonzero': tf.placeholder(tf.int32)  # helper variable for sparse dropout
+    'support': [tc1.sparse_placeholder(tf.float32) for _ in range(num_supports)],
+    'features': tc1.sparse_placeholder(tf.float32, shape=tf.constant(features[2], dtype=tf.int64)),
+    'labels': tc1.placeholder(tf.float32, shape=(None, y_train.shape[1])),
+    'labels_mask': tc1.placeholder(tf.int32),
+    'dropout': tc1.placeholder_with_default(0., shape=()),
+    'num_features_nonzero': tc1.placeholder(tf.int32)  # helper variable for sparse dropout
 }
 
 # Create model
 model = model_func(placeholders, input_dim=features[2][1], logging=True)
 
 # Initialize session
-sess = tf.Session()
+sess = tc1.Session()
 
 
 # Define model evaluation function
@@ -71,7 +71,7 @@ def evaluate(features, support, labels, mask, placeholders):
 
 
 # Init variables
-sess.run(tf.global_variables_initializer())
+sess.run(tc1.global_variables_initializer())
 
 cost_val = []
 
